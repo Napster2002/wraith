@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0d12">
+  <title>Wraith — AI, in your flow</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0b0d12;
+      color: #e7e9ef;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(ellipse at 50% -25%, #28254a 0, #11121a 40%, #0b0d12 75%); }
+    button, textarea { font: inherit; }
+    button { color: inherit; }
+    .shell { min-height: 100vh; display: grid; grid-template-columns: 280px minmax(0, 1fr); }
+    .sidebar { padding: 24px 18px; border-right: 1px solid #ffffff12; background: #0d0e15ad; display: flex; flex-direction: column; gap: 22px; }
+    .brand { display: flex; align-items: center; gap: 12px; padding: 2px 5px 18px; border-bottom: 1px solid #ffffff12; }
+    .sigil { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 13px; background: linear-gradient(140deg, #ad8cff, #6355dd); box-shadow: 0 0 32px #7864ff4a; font-size: 20px; font-weight: 800; }
+    .brand strong { display: block; letter-spacing: .16em; font-size: 14px; }
+    .brand span { color: #85899c; font-size: 11px; }
+    .eyebrow { color: #787d91; text-transform: uppercase; letter-spacing: .13em; font-weight: 700; font-size: 10px; margin: 0 0 11px; }
+    .provider-list { display: grid; gap: 8px; }
+    .provider { display: flex; align-items: center; gap: 10px; padding: 11px 10px; border: 1px solid #ffffff10; border-radius: 11px; background: #ffffff05; cursor: pointer; }
+    .provider:has(input:checked) { border-color: #8c73ff70; background: #7965ff15; }
+    .provider input { accent-color: #9983ff; }
+    .provider .name { flex: 1; font-size: 12px; }
+    .provider small { color: #7c8296; font-size: 10px; }
+    .hint { margin-top: 11px; color: #7c8296; line-height: 1.55; font-size: 11px; }
+    .control-card { border: 1px solid #ffffff12; border-radius: 14px; background: #ffffff05; padding: 13px; }
+    .control-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+    .control-head strong { font-size: 12px; }
+    .switch { width: 35px; height: 20px; padding: 2px; border: 0; border-radius: 12px; background: #343644; cursor: pointer; }
+    .switch::after { content: ""; display: block; width: 16px; height: 16px; border-radius: 50%; background: #c7cad4; transition: transform .18s; }
+    .switch.active { background: #7561ec; }
+    .switch.active::after { transform: translateX(15px); background: white; }
+    .control-card p { color: #82879a; font-size: 10px; line-height: 1.5; margin: 0; }
+    .camera-preview { display: none; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 9px; background: #08090d; transform: scaleX(-1); margin-top: 10px; }
+    .camera-preview.visible { display: block; }
+    .footer { margin-top: auto; color: #666b7d; font-size: 10px; line-height: 1.6; }
+    .main { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar { height: 64px; display: flex; justify-content: space-between; align-items: center; padding: 0 28px; border-bottom: 1px solid #ffffff10; }
+    .topbar .caption { color: #9095a8; font-size: 12px; }
+    .connection { display: flex; align-items: center; gap: 8px; color: #9da2b2; font-size: 11px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #55d49a; box-shadow: 0 0 10px #55d49a77; }
+    .chat { flex: 1; width: min(880px, 100%); margin: 0 auto; padding: 35px 28px 24px; display: flex; flex-direction: column; }
+    .welcome { margin: auto auto 28px; max-width: 620px; text-align: center; }
+    .welcome .orb { width: 68px; height: 68px; margin: 0 auto 20px; display: grid; place-items: center; border-radius: 24px; background: linear-gradient(140deg, #a18cff, #5545bd); box-shadow: 0 0 60px #7460e74b; font-size: 28px; }
+    .welcome h1 { font-size: clamp(26px, 4vw, 39px); letter-spacing: -.04em; margin: 0 0 11px; }
+    .welcome p { margin: 0; color: #9599a9; font-size: 13px; line-height: 1.7; }
+    .messages { display: grid; gap: 19px; width: 100%; margin: 0 auto; }
+    .message { max-width: min(760px, 94%); border: 1px solid #ffffff10; border-radius: 15px; padding: 14px 16px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.68; }
+    .message.user { justify-self: end; background: #6555c42b; border-color: #9584ff30; }
+    .message.assistant { justify-self: start; background: #ffffff08; }
+    .message .byline { color: #a99aff; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+    .message.error { border-color: #ff727255; }
+    .activity { color: #a8a2d7; font-size: 11px; min-height: 17px; margin: 0 0 12px; }
+    .composer-wrap { padding-top: 14px; }
+    .composer { position: relative; border: 1px solid #ffffff1c; border-radius: 17px; background: #151720; box-shadow: 0 14px 50px #0005; }
+    textarea { display: block; width: 100%; min-height: 58px; max-height: 180px; resize: vertical; border: 0; outline: 0; padding: 17px 110px 13px 17px; border-radius: 17px; background: transparent; color: #f2f2f7; font-size: 13px; }
+    textarea::placeholder { color: #707587; }
+    .send { position: absolute; right: 9px; bottom: 9px; width: 38px; height: 36px; border: 0; border-radius: 11px; background: #8370f1; cursor: pointer; font-size: 16px; }
+    .send:hover { background: #9788ff; }
+    .send:disabled { opacity: .5; cursor: wait; }
+    .mic { position: absolute; right: 54px; bottom: 9px; width: 36px; height: 36px; border: 1px solid #ffffff16; border-radius: 11px; background: #ffffff08; cursor: pointer; }
+    .mic.listening { background: #e4517170; border-color: #ff7290; animation: pulse 1.5s infinite; }
+    .subline { display: flex; justify-content: space-between; color: #73788c; font-size: 10px; padding: 9px 3px 0; }
+    .subline kbd { padding: 2px 5px; border: 1px solid #ffffff1c; border-radius: 4px; font: inherit; }
+    .toast { position: fixed; left: 50%; bottom: 25px; transform: translateX(-50%); padding: 10px 15px; border: 1px solid #ffffff20; border-radius: 11px; background: #20212c; box-shadow: 0 10px 35px #0008; color: #eee; font-size: 12px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .toast.visible { opacity: 1; }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 6px #e4517122; } }
+    @media (max-width: 760px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar { border-right: 0; border-bottom: 1px solid #ffffff12; padding: 12px 15px; gap: 11px; }
+      .brand { border-bottom: 0; padding: 0; }
+      .brand .sigil { width: 32px; height: 32px; border-radius: 10px; }
+      .provider-section { display: flex; align-items: center; gap: 10px; overflow-x: auto; }
+      .provider-section .eyebrow { margin: 0; white-space: nowrap; }
+      .provider-list { display: flex; }
+      .provider { padding: 7px 9px; white-space: nowrap; }
+      .hint, .footer { display: none; }
+      .sidebar-controls { display: flex; gap: 9px; }
+      .control-card { flex: 1; padding: 8px 10px; }
+      .control-head { margin: 0; }
+      .control-card p { display: none; }
+      .camera-preview { position: absolute; right: 12px; top: 160px; width: 150px; z-index: 2; box-shadow: 0 5px 30px #0008; }
+      .topbar { height: 45px; padding: 0 15px; }
+      .chat { min-height: 60vh; padding: 22px 15px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="sigil">W</div><div><strong>WRAITH</strong><span>AI, in your flow</span></div></div>
+      <section class="provider-section">
+        <p class="eyebrow">Choose your minds</p>
+        <div class="provider-list" id="providers">
+          <label class="provider"><input type="checkbox" value="chatgpt" checked><span class="name">ChatGPT</span><small>Login</small></label>
+          <label class="provider"><input type="checkbox" value="copilot"><span class="name">Copilot</span><small>Login</small></label>
+          <label class="provider"><input type="checkbox" value="deepseek"><span class="name">DeepSeek</span><small>API key</small></label>
+          <label class="provider"><input type="checkbox" value="github"><span class="name">GitHub Models</span><small>Token</small></label>
+          <label class="provider"><input type="checkbox" value="openai"><span class="name">OpenAI API</span><small>API key</small></label>
+        </div>
+        <p class="hint">Sign in to ChatGPT or Copilot in the terminal first. API providers need credentials in <code>.env</code>.</p>
+      </section>
+      <div class="sidebar-controls">
+        <section class="control-card">
+          <div class="control-head"><strong>Camera gestures</strong><button id="cameraToggle" class="switch" aria-label="Enable camera gestures" aria-pressed="false"></button></div>
+          <p>Optional. Open palm toggles the microphone, pinch sends a drafted message, and a fist stops spoken audio. Video stays in your browser.</p>
+          <video id="camera" class="camera-preview" autoplay muted playsinline></video>
+        </section>
+        <section class="control-card">
+          <div class="control-head"><strong>Voice chat</strong><button id="voiceToggle" class="switch" aria-label="Enable continuous voice chat" aria-pressed="false"></button></div>
+          <p>Uses your browser's speech recognition and speech synthesis. Microphone access is requested only after you turn it on.</p>
+        </section>
+      </div>
+      <div class="footer">Camera and microphone are opt-in.<br>Local session · Your credentials stay on this machine</div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><span class="caption">A multi-model workspace</span><span class="connection"><span class="dot"></span><span id="connection">Connecting</span></span></header>
+      <section class="chat">
+        <div class="welcome" id="welcome"><div class="orb">✳</div><h1>Good to see you.</h1><p>Ask Wraith anything. Choose one AI or let multiple models work in parallel. Turn on voice or gestures whenever you're ready.</p></div>
+        <div class="messages" id="messages" aria-live="polite"></div>
+        <div class="composer-wrap">
+          <div class="activity" id="activity" role="status"></div>
+          <form class="composer" id="form"><textarea id="input" rows="1" placeholder="Message Wraith..." aria-label="Message Wraith"></textarea><button class="mic" id="micButton" type="button" aria-label="Start voice input">🎙</button><button class="send" id="send" aria-label="Send message">↑</button></form>
+          <div class="subline"><span>Wraith can make mistakes. Verify important output.</span><span><kbd>Enter</kbd> to send</span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script type="module">
+    const byId = (id) => document.getElementById(id);
+    const messagesElement = byId('messages');
+    const input = byId('input');
+    const form = byId('form');
+    const activity = byId('activity');
+    const sendButton = byId('send');
+    const camera = byId('camera');
+    const history = [];
+    let busy = false;
+    let recognition;
+    let continuousVoice = false;
+    let recognitionActive = false;
+    let speechEnabled = false;
+    let mediaStream;
+    let handLandmarker;
+    let gestureFrame = 0;
+    let lastGesture = '';
+    let lastGestureAt = 0;
+
+    function toast(message) {
+      const el = byId('toast');
+      el.textContent = message;
+      el.classList.add('visible');
+      setTimeout(() => el.classList.remove('visible'), 3200);
+    }
+
+    function addMessage(role, text, byline = '') {
+      byId('welcome').hidden = true;
+      const message = document.createElement('article');
+      message.className = `message ${role}`;
+      if (byline) {
+        const label = document.createElement('div');
+        label.className = 'byline';
+        label.textContent = byline;
+        message.append(label);
+      }
+      const body = document.createElement('div');
+      body.textContent = text;
+      message.append(body);
+      messagesElement.append(message);
+      message.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      return message;
+    }
+
+    function selectedProviders() {
+      return [...document.querySelectorAll('#providers input:checked')].map((el) => el.value);
+    }
+
+    async function sendMessage(value = input.value) {
+      const message = value.trim();
+      const providers = selectedProviders();
+      if (!message || busy) return;
+      if (!providers.length) {
+        toast('Choose at least one AI provider.');
+        return;
+      }
+
+      busy = true;
+      sendButton.disabled = true;
+      activity.textContent = `Starting ${providers.join(' + ')}...`;
+      addMessage('user', message, 'You');
+      input.value = '';
+      history.push({ role: 'user', content: message });
+      const responseBubble = addMessage('assistant', '', 'Wraith');
+      const responseBody = responseBubble.lastElementChild;
+      let receivedDone = false;
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, providers, history: history.slice(0, -1).slice(-20) }),
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || `Request failed (${response.status}).`);
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let pending = '';
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          pending += decoder.decode(value, { stream: true });
+          const lines = pending.split('\n');
+          pending = lines.pop();
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            const event = JSON.parse(line);
+            if (event.event === 'start') activity.textContent = event.data.message;
+            if (event.event === 'provider_start') activity.textContent = `${event.data.provider} is thinking...`;
+            if (event.event === 'provider_result') {
+              if (event.data.error) {
+                activity.textContent = `${event.data.provider} failed: ${event.data.content}`;
+              } else if (providers.length > 1) {
+                responseBody.textContent += `${responseBody.textContent ? '\n\n' : ''}${event.data.provider}: ${event.data.content}`;
+              } else {
+                responseBody.textContent = event.data.content;
+              }
+            }
+            if (event.event === 'done') {
+              receivedDone = true;
+              const answer = event.data.mode === 'parallel'
+                ? event.data.mergedSummary
+                : event.data.content;
+              responseBody.textContent = answer;
+              history.push({ role: 'assistant', content: answer });
+              if (event.data.failures?.length) {
+                activity.textContent = `Some providers failed: ${event.data.failures.join('; ')}`;
+              } else {
+                activity.textContent = '';
+              }
+              if (speechEnabled && answer) speak(answer);
+            }
+            if (event.event === 'error') {
+              throw new Error(event.data.message || 'Wraith could not complete the request.');
+            }
+          }
+        }
+        if (!receivedDone) throw new Error('The connection ended before Wraith returned a response.');
+      } catch (error) {
+        responseBubble.classList.add('error');
+        responseBody.textContent = error.message;
+        activity.textContent = '';
+        toast(error.message);
+      } finally {
+        busy = false;
+        sendButton.disabled = false;
+        input.focus();
+      }
+    }
+
+    async function refreshStatus() {
+      try {
+        const response = await fetch('/api/status');
+        const status = await response.json();
+        if (!response.ok) throw new Error(status.error || 'Wraith server is unavailable.');
+        byId('connection').textContent = 'Local server ready';
+        for (const provider of status.providers) {
+          const checkbox = document.querySelector(`#providers input[value="${provider.id}"]`);
+          if (!checkbox) continue;
+          const label = checkbox.closest('.provider');
+          checkbox.disabled = !provider.login && !provider.enabled;
+          if (!provider.login && !provider.enabled) {
+            label.title = `Add ${provider.id === 'github' ? 'GITHUB_MODELS_TOKEN' : `${provider.id.toUpperCase()}_API_KEY`} to .env to enable this provider.`;
+            label.style.opacity = '.45';
+          }
+        }
+        if (status.defaultProviders?.length) {
+          document.querySelectorAll('#providers input').forEach((checkbox) => {
+            checkbox.checked = status.defaultProviders.includes(checkbox.value);
+          });
+        }
+      } catch (error) {
+        byId('connection').textContent = 'Server connection issue';
+        toast(error.message);
+      }
+    }
+
+    function startRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        toast('Speech recognition is not supported in this browser. Try Chrome or Edge.');
+        return;
+      }
+      if (!recognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = navigator.language || 'en-US';
+        recognition.onresult = (event) => {
+          let finalText = '';
+          let interimText = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) finalText += transcript;
+            else interimText += transcript;
+          }
+          input.value = `${input.value.replace(/\s*\[listening\].*$/s, '').trim()}${finalText ? `${input.value.trim() ? ' ' : ''}${finalText.trim()}` : ''}${interimText ? ` [listening] ${interimText}` : ''}`.trim();
+          if (finalText.trim()) {
+            const spoken = input.value.replace(/\s*\[listening\].*$/s, '').trim();
+            if (continuousVoice && spoken && !busy) sendMessage(spoken);
+          }
+        };
+        recognition.onerror = (event) => {
+          if (event.error !== 'no-speech' && event.error !== 'aborted') toast(`Microphone: ${event.error}`);
+        };
+        recognition.onend = () => {
+          recognitionActive = false;
+          byId('micButton').classList.remove('listening');
+          if (continuousVoice && !busy) setTimeout(beginRecognition, 250);
+        };
+      }
+      continuousVoice = true;
+      speechEnabled = true;
+      beginRecognition();
+      byId('voiceToggle').classList.add('active');
+      byId('voiceToggle').setAttribute('aria-pressed', 'true');
+    }
+
+    function beginRecognition() {
+      if (!recognition || recognitionActive || !continuousVoice) return;
+      try {
+        recognition.start();
+        recognitionActive = true;
+        byId('micButton').classList.add('listening');
+      } catch (error) {
+        if (error.name !== 'InvalidStateError') toast(error.message);
+      }
+    }
+
+    function stopRecognition() {
+      continuousVoice = false;
+      recognitionActive = false;
+      if (recognition) recognition.stop();
+      byId('micButton').classList.remove('listening');
+      byId('voiceToggle').classList.remove('active');
+      byId('voiceToggle').setAttribute('aria-pressed', 'false');
+    }
+
+    function speak(text) {
+      if (!('speechSynthesis' in window)) {
+        toast('Speech output is not supported in this browser.');
+        return;
+      }
+      if (recognitionActive) recognition.stop();
+      speechEnabled = true;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.onend = () => {
+        if (continuousVoice) setTimeout(beginRecognition, 250);
+      };
+      utterance.onerror = () => {
+        if (continuousVoice) setTimeout(beginRecognition, 250);
+      };
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utterance);
+    }
+
+    async function enableCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast('Camera access requires localhost or a secure HTTPS connection.');
+        return;
+      }
+      try {
+        byId('activity').textContent = 'Requesting camera permission...';
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false,
+        });
+        camera.srcObject = mediaStream;
+        camera.classList.add('visible');
+        byId('cameraToggle').classList.add('active');
+        byId('cameraToggle').setAttribute('aria-pressed', 'true');
+        byId('activity').textContent = 'Loading hand-gesture model...';
+        const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm');
+        const files = await vision.FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm',
+        );
+        handLandmarker = await vision.HandLandmarker.createFromOptions(files, {
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+            delegate: 'GPU',
+          },
+          runningMode: 'VIDEO',
+          numHands: 1,
+        });
+        byId('activity').textContent = 'Gestures ready: open palm = mic, pinch = send, fist = stop audio.';
+        detectGestures();
+      } catch (error) {
+        disableCamera();
+        toast(`Camera gestures could not start: ${error.message}`);
+        byId('activity').textContent = '';
+      }
+    }
+
+    function disableCamera() {
+      cancelAnimationFrame(gestureFrame);
+      if (mediaStream) mediaStream.getTracks().forEach((track) => track.stop());
+      mediaStream = undefined;
+      camera.srcObject = null;
+      camera.classList.remove('visible');
+      handLandmarker?.close();
+      handLandmarker = undefined;
+      byId('cameraToggle').classList.remove('active');
+      byId('cameraToggle').setAttribute('aria-pressed', 'false');
+    }
+
+    function detectGestures() {
+      if (!handLandmarker || camera.readyState < 2) {
+        gestureFrame = requestAnimationFrame(detectGestures);
+        return;
+      }
+      const result = handLandmarker.detectForVideo(camera, performance.now());
+      const points = result.landmarks?.[0];
+      if (points) {
+        const distance = (a, b) => Math.hypot(points[a].x - points[b].x, points[a].y - points[b].y);
+        const pinch = distance(4, 8) < 0.055;
+        const openFingers = [[8, 6], [12, 10], [16, 14], [20, 18]].filter(([tip, joint]) => points[tip].y < points[joint].y).length;
+        const fist = openFingers === 0 && !pinch;
+        const openPalm = openFingers >= 4 && !pinch;
+        const gesture = pinch ? 'pinch' : openPalm ? 'palm' : fist ? 'fist' : '';
+        if (gesture && gesture !== lastGesture && Date.now() - lastGestureAt > 1200) {
+          lastGesture = gesture;
+          lastGestureAt = Date.now();
+          if (gesture === 'palm') continuousVoice ? stopRecognition() : startRecognition();
+          if (gesture === 'pinch' && input.value.trim() && !busy) sendMessage();
+          if (gesture === 'fist' && 'speechSynthesis' in window) speechSynthesis.cancel();
+        }
+        if (!gesture) lastGesture = '';
+      }
+      gestureFrame = requestAnimationFrame(detectGestures);
+    }
+
+    form.addEventListener('submit', (event) => { event.preventDefault(); sendMessage(); });
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+    byId('micButton').addEventListener('click', () => continuousVoice ? stopRecognition() : startRecognition());
+    byId('voiceToggle').addEventListener('click', () => {
+      if (continuousVoice) {
+        stopRecognition();
+        speechEnabled = false;
+        if ('speechSynthesis' in window) speechSynthesis.cancel();
+      } else startRecognition();
+    });
+    byId('cameraToggle').addEventListener('click', () => mediaStream ? disableCamera() : enableCamera());
+    window.addEventListener('beforeunload', () => {
+      disableCamera();
+      stopRecognition();
+    });
+    refreshStatus();
+  </script>
+</body>
+</html>
