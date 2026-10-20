@@ -1,0 +1,2 @@
+# wraith
+AI agent
