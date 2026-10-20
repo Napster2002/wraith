@@ -1,0 +1,24 @@
+{
+  "name": "wraith-agent",
+  "version": "0.1.0",
+  "description": "Wraith — a multi-provider coding agent with ChatGPT and GitHub Copilot sign-in plus API-key providers.",
+  "type": "module",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "server": "python server.py",
+    "dev": "node --watch src/index.js",
+    "auth:chatgpt": "node src/index.js auth chatgpt",
+    "auth:copilot": "node src/index.js auth copilot",
+    "check": "node --check src/index.js && node --check src/config.js && node --check src/providers.js && node --check src/orchestrator.js && node --check src/auth.js && node --check src/copilot.js && node --check src/chatgpt.js && node --check src/web-runner.js",
+    "help": "node src/index.js --help"
+  },
+  "dependencies": {
+    "@github/copilot": "^1.0.100",
+    "@github/copilot-sdk": "^1.0.23",
+    "@openai/codex-sdk": "^0.163.0",
+    "@openai/codex-win32-x64": "npm:@openai/codex@^0.163.0-win32-x64",
+    "dotenv": "^16.6.1"
+  }
+}
